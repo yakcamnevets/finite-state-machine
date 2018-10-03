@@ -4,7 +4,7 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 
-public class FiniteStateMachine {
+public final class FiniteStateMachine {
     private final StateMap stateMap;
 
     private FiniteStateMachine(StateMap stateMap) {
@@ -45,8 +45,8 @@ public class FiniteStateMachine {
         String stateName = startStateName;
         while (!Objects.isNull(stateName)) {
             context.clearStatus();
-            context.setStateNode(stateMap.getStateInstances().get(stateName));
-            context.getStateNode().execute(context);
+            context.setState(stateMap.getStateInstances().get(stateName));
+            context.getState().execute(context);
             if (Objects.isNull(context.getStatus())) {
                 throw new StateException("Unable to locate state for null status.");
             }

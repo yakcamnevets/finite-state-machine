@@ -9,7 +9,7 @@ import java.util.Set;
 public class StateContext implements Map<String, Object> {
     private final Map<String, Object> values;
     private String status;
-    private StateNode stateNode;
+    private StateNode state;
 
     public StateContext() {
         values = new HashMap<>();
@@ -34,16 +34,16 @@ public class StateContext implements Map<String, Object> {
         status = null;
     }
 
-    public StateNode getStateNode() {
-        return stateNode;
+    public StateNode getState() {
+        return state;
     }
 
-    void setStateNode(StateNode stateNode) {
-        this.stateNode = stateNode;
+    void setState(StateNode state) {
+        this.state = state;
     }
 
     void cleanState() {
-        setStateNode(null);
+        setState(null);
     }
 
     @Override
