@@ -26,6 +26,12 @@ public final class StateMap {
     private final Map<String, Map<String, String>> stateStatusMap;
     private final String defaultStartStateName;
 
+    private static final String STATE_NAME_ATTRIBUTE_NAME = "name";
+    private static final String STATE_CLASS_ATTRIBUTE_NAME = "class";
+    private static final String STATE_START_ATTRIBUTE_NAME = "start";
+    private static final String STATUS_NAME_ATTRIBUTE_NAME = "name";
+    private static final String STATUS_STATE_ELEMENT_NAME = "state";
+
     private StateMap(Map<String, StateNode> stateInstances, Map<String, Map<String, String>> stateStatusMap, String defaultStartStateName) {
         this.stateInstances = stateInstances;
         this.stateStatusMap = stateStatusMap;
@@ -60,9 +66,9 @@ public final class StateMap {
         NodeList stateNodes = stateMapElement.getChildNodes();
         for (int i = 0; i < stateNodes.getLength(); i++) {
             Node stateNode = stateNodes.item(i);
-            String stateName = stateNode.getAttributes().getNamedItem("name").getNodeValue();
-            String stateClassName = stateNode.getAttributes().getNamedItem("class").getNodeValue();
-            boolean start = Boolean.getBoolean(stateNode.getAttributes().getNamedItem("start").getNodeValue());
+            String stateName = stateNode.getAttributes().getNamedItem(STATE_NAME_ATTRIBUTE_NAME).getNodeValue();
+            String stateClassName = stateNode.getAttributes().getNamedItem(STATE_CLASS_ATTRIBUTE_NAME).getNodeValue();
+            boolean start = Boolean.getBoolean(stateNode.getAttributes().getNamedItem(STATE_START_ATTRIBUTE_NAME).getNodeValue());
             Class<? extends StateNode> stateClass;
             try {
                 stateClass = Class.forName(stateClassName).asSubclass(StateNode.class);
@@ -73,8 +79,8 @@ public final class StateMap {
             NodeList statusNodes = stateNode.getChildNodes();
             for (int j = 0; j < statusNodes.getLength(); j++) {
                 Node statusNode = statusNodes.item(i);
-                String statusName = stateNode.getAttributes().getNamedItem("name").getNodeValue();
-                String statusStateName = stateNode.getAttributes().getNamedItem("state").getNodeValue();
+                String statusName = stateNode.getAttributes().getNamedItem(STATUS_NAME_ATTRIBUTE_NAME).getNodeValue();
+                String statusStateName = stateNode.getAttributes().getNamedItem(STATUS_STATE_ELEMENT_NAME).getNodeValue();
                 stateBuilder.status(statusName, statusStateName.equals("") ? null : statusStateName);
             }
             stateMapBuilder = stateBuilder.and();
@@ -173,7 +179,7 @@ public final class StateMap {
             for (Map.Entry<String, Map<String, String>> stateEntry : stateStatusMap.entrySet()) {
                 for (Map.Entry<String, String> statusEntry : stateEntry.getValue().entrySet()) {
                     if (!stateInstances.containsKey(statusEntry.getValue())) {
-                        throw new StateMapException(String.format("No state '%s' defined for for status '%s'.", statusEntry.getValue(), statusEntry.getKey()));
+                        throw new StateMapException(String.format("No state %s defined for for status %s.", statusEntry.getValue(), statusEntry.getKey()));
                     }
                 }
             }
