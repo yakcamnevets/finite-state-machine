@@ -1,7 +1,7 @@
 package ca.yakcam.fsm.test.state;
 
-import ca.yakcam.fsm.StateNode;
 import ca.yakcam.fsm.StateContext;
+import ca.yakcam.fsm.StateNode;
 
 public class BeginState implements StateNode {
     public BeginState() {

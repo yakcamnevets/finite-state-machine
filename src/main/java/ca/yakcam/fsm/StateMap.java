@@ -1,8 +1,25 @@
 package ca.yakcam.fsm;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public final class StateMap {
     private final Map<String, StateNode> stateInstances;
@@ -17,6 +34,52 @@ public final class StateMap {
 
     public static StateMapBuilder builder() {
         return new StateMapBuilder();
+    }
+
+    public static StateMapBuilder builderFromXml(InputStream xml) throws StateMapException {
+        SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        try (InputStream xsd = FiniteStateMachine.class.getResourceAsStream("state-map.xsd")) {
+            Schema schema = schemaFactory.newSchema(new StreamSource(xsd));
+            Validator validator = schema.newValidator();
+            validator.validate(new StreamSource(xml));
+        } catch (IOException e) {
+            throw new StateMapException("Unable to read StateMap schema XSD.", e);
+        } catch (SAXException e) {
+            throw new StateMapException("StateMap XML is not valid.", e);
+        }
+        StateMap.StateMapBuilder stateMapBuilder = StateMap.builder();
+        Document document;
+        try {
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            document = documentBuilder.parse(xml);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            throw new StateMapException("Unable to read StateMap XML.", e);
+        }
+        Element stateMapElement = document.getDocumentElement();
+        NodeList stateNodes = stateMapElement.getChildNodes();
+        for (int i = 0; i < stateNodes.getLength(); i++) {
+            Node stateNode = stateNodes.item(i);
+            String stateName = stateNode.getAttributes().getNamedItem("name").getNodeValue();
+            String stateClassName = stateNode.getAttributes().getNamedItem("class").getNodeValue();
+            boolean start = Boolean.getBoolean(stateNode.getAttributes().getNamedItem("start").getNodeValue());
+            Class<? extends StateNode> stateClass;
+            try {
+                stateClass = Class.forName(stateClassName).asSubclass(StateNode.class);
+            } catch (ClassNotFoundException e) {
+                throw new StateMapException(String.format("Could not create state class for name %s", stateClassName), e);
+            }
+            StateBuilder stateBuilder = stateMapBuilder.state(stateName, stateClass, start);
+            NodeList statusNodes = stateNode.getChildNodes();
+            for (int j = 0; j < statusNodes.getLength(); j++) {
+                Node statusNode = statusNodes.item(i);
+                String statusName = stateNode.getAttributes().getNamedItem("name").getNodeValue();
+                String statusStateName = stateNode.getAttributes().getNamedItem("state").getNodeValue();
+                stateBuilder.status(statusName, statusStateName.equals("") ? null : statusStateName);
+            }
+            stateMapBuilder = stateBuilder.and();
+        }
+        return stateMapBuilder;
     }
 
     Map<String, StateNode> getStateInstances() {
@@ -46,19 +109,19 @@ public final class StateMap {
             defaultStartStateName = null;
         }
 
-        public StateBuilder state(String stateName, StateNode stateNodeInstance) throws StateException, StateMapException {
+        public StateBuilder state(String stateName, StateNode stateNodeInstance) throws StateMapException {
             return state(stateName, stateNodeInstance, false);
         }
 
-        public StateBuilder state(String stateName, Class<? extends StateNode> stateClass) throws StateException, StateMapException {
+        public StateBuilder state(String stateName, Class<? extends StateNode> stateClass) throws StateMapException {
             return state(stateName, stateClass, false);
         }
 
-        public StateBuilder startState(String stateName, StateNode stateNodeInstance) throws StateException, StateMapException {
+        public StateBuilder startState(String stateName, StateNode stateNodeInstance) throws StateMapException {
             return state(stateName, stateNodeInstance, true);
         }
 
-        public StateBuilder startState(String stateName, Class<? extends StateNode> stateClass) throws StateException, StateMapException {
+        public StateBuilder startState(String stateName, Class<? extends StateNode> stateClass) throws StateMapException {
             return state(stateName, stateClass, true);
         }
 
@@ -73,13 +136,13 @@ public final class StateMap {
             return new StateBuilder(stateName, this);
         }
 
-        public StateBuilder state(String stateName, Class<? extends StateNode> stateClass, boolean isDefaultStartState) throws StateException, StateMapException {
+        public StateBuilder state(String stateName, Class<? extends StateNode> stateClass, boolean isDefaultStartState) throws StateMapException {
             Objects.requireNonNull(stateClass, "Argument stateClass is a required to be non-null.");
-            StateNode stateNodeInstance = null;
+            StateNode stateNodeInstance;
             try {
                 stateNodeInstance = stateClass.newInstance();
             } catch (InstantiationException | IllegalAccessException e) {
-                throw new StateException("StateNode class must contain a public default constructor.", e);
+                throw new StateMapException("StateNode class must contain a public default constructor.", e);
             }
             return state(stateName, stateNodeInstance, isDefaultStartState);
         }

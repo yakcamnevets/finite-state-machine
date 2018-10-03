@@ -18,7 +18,7 @@ public class FiniteStateMachineTests {
     private static StateMap stateMap;
 
     @BeforeClass
-    public static void beforeClass() throws StateMapException, StateException {
+    public static void beforeClass() throws StateMapException {
         stateMap = StateMap.builder()
                 .startState("Begin", BeginState.class).status("PROCEED", "End").and()
                 .state("End", new EndState()).status("REPEAT", "Begin").exitStatus("EXIT")
