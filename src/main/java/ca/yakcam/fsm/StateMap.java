@@ -138,7 +138,9 @@ public final class StateMap {
                 throw new StateMapException("StateNode has aready been created.");
             }
             stateInstances.put(stateName, stateNodeInstance);
-            setDefaultStartStateName(stateName);
+            if (isDefaultStartState) {
+                setDefaultStartStateName(stateName);
+            }
             return new StateBuilder(stateName, this);
         }
 
@@ -178,7 +180,7 @@ public final class StateMap {
             }
             for (Map.Entry<String, Map<String, String>> stateEntry : stateStatusMap.entrySet()) {
                 for (Map.Entry<String, String> statusEntry : stateEntry.getValue().entrySet()) {
-                    if (!stateInstances.containsKey(statusEntry.getValue())) {
+                    if (!Objects.isNull(statusEntry.getValue()) && !stateInstances.containsKey(statusEntry.getValue())) {
                         throw new StateMapException(String.format("No state %s defined for for status %s.", statusEntry.getValue(), statusEntry.getKey()));
                     }
                 }
